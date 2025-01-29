@@ -1,29 +1,43 @@
-name: Build and Deploy
+name: Deploy Next.js to GitHub Pages
+
 on:
   push:
     branches:
-      - master
+      - main
+  
+permissions:
+  contents: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: '12.x'
-
+          node-version: 18
+          cache: 'npm'
+        
       - name: Install dependencies
         run: npm install
-
-      - name: Build
+        
+      - name: Build Next.js project
         run: npm run build
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+        env:
+          NEXT_PUBLIC_BASE_PATH: /pineapple.github.io
+          NEXT_PUBLIC_ASSET_PREFIX: /pineapple.github.io
+        
+      - name: Export static files
+        run: npm run export
+        
+      - name: Rename output folder
+        run: mv out public
+        
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.TOKEN_SECRET }}
-          publish_dir: ./public
+          branch: gh-pages
+          folder: public
