@@ -6,32 +6,43 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [18.x] 
+
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Cache node modules
-        uses: actions/cache@v2
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
 
-      - name: Install 🔧
-        run: yarn install
+      - name: Cache Next.js build
+        uses: actions/cache@v3
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}
+          
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-      - name: Build 🔧
+      - name: Build project
         run: |
-          yarn export
+          yarn build
           touch out/.nojekyll
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_SECRET }}
+          NEXT_PUBLIC_BASE_PATH: /pineapple.github.io
 
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@3.6.1
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_SECRET }}
-          BRANCH: production
-          FOLDER: out 
-          CLEAN: true 
+          token: ${{ secrets.TOKEN_SECRET }}
+          branch: gh-pages 
+          folder: out
+          clean: true
